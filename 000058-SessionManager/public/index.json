@@ -1,0 +1,127 @@
+[
+{
+	"uri": "//localhost:1313/",
+	"title": "Advanced S3 Event Processing with AWS Lambda and Step Functions",
+	"tags": [],
+	"description": "",
+	"content": "Advanced S3 Event Processing with Lambda and Step Functions Overview This project focuses on building an automated event-driven system from Amazon S3 using AWS Lambda and Step Functions. The system enables flexible, scalable file processing with error handling and efficient monitoring. The solution is suitable for large-scale data processing tasks such as media files, logs, or documents, while optimizing for performance and operational cost.\nContents Introduction Architecture Overview Environment and Resource Preparation Create Step Functions Workflow Monitoring with CloudWatch Clean Up Resources "
+},
+{
+	"uri": "//localhost:1313/5--monitoringwithcloudwatch/5.1-check-logs-from-lambda-and-step-functions/",
+	"title": "Check Logs from Lambda and Step Functions",
+	"tags": [],
+	"description": "",
+	"content": "Logs from Lambda Function Open the CloudWatch Console\nSelect Logs → Log groups\nSearch for function names: /aws/lambda/s3PreprocessFunction, processFileFunction, storeResultFunction\nClick the log group → then click on a log stream to view the details of each invocation Logs from Step Function Go back to the Step Functions Console\nSelect the state machine: FileProcessingWorkflow\nClick on any execution → the Execution events tab will show details:\nInput/Output of each step\nSuccess/failure status: Error message if any "
+},
+{
+	"uri": "//localhost:1313/4-step-function-workflow/4.1-create-lambda-functions/",
+	"title": "Create Additional Lambda Functions (Processing and Storing Results)",
+	"tags": [],
+	"description": "",
+	"content": "Create Lambda to Process File Content (processFileFunction) Go to the AWS Lambda Console\nClick on \u0026ldquo;Create function\u0026rdquo;\nFill in the following information:\nFunction name: processFileFunction\nRuntime: Python 3.12\nExecution role: Use existing role → select LambdaEventProcessingRole\nClick \u0026ldquo;Create function\u0026rdquo; In the Code section, paste the following code:\ndef lambda_handler(event, context): print(\u0026#34;Processing file content...\u0026#34;) return { \u0026#34;status\u0026#34;: \u0026#34;processed\u0026#34;, \u0026#34;filename\u0026#34;: event.get(\u0026#34;filename\u0026#34;, \u0026#34;unknown\u0026#34;) } Click \u0026ldquo;Deploy\u0026rdquo; Create Lambda to Store Results (storeResultFunction) Continue creating another function:\nFunction name: storeResultFunction\nRuntime: Python 3.12\nExecution role: LambdaEventProcessingRole\nSample code:\ndef lambda_handler(event, context): print(\u0026#34;Storing result...\u0026#34;) print(\u0026#34;Input from previous step:\u0026#34;, event) return { \u0026#34;status\u0026#34;: \u0026#34;stored\u0026#34;, \u0026#34;original\u0026#34;: event } Click \u0026ldquo;Deploy\u0026rdquo; "
+},
+{
+	"uri": "//localhost:1313/3-accessibilitytoinstances/3.1-s3/",
+	"title": "Create S3 Bucket",
+	"tags": [],
+	"description": "",
+	"content": "Step 1: Access the bucket creation interface\nMake sure you\u0026rsquo;re logged in to your AWS account and selected the Asia Pacific (Singapore) region — ap-southeast-1.\nStep 2: Enter Bucket Information\nBucket name (must be globally unique):\nExample: event-driven-demo-bucket-2025\nTip: Use a short name, avoid spaces or special characters.\n🌍 AWS Region:\nDefault is Asia Pacific (Singapore) – ap-southeast-1 — keep this if you\u0026rsquo;re using the same region for Lambda and Step Functions.\nStep 3: Configure Public Access Settings\nIn the Block Public Access settings for this bucket:\n✅ Uncheck: Block all public access\nAWS will show a warning → check the box to acknowledge:\n“I acknowledge that the current settings might result in this bucket and the objects within becoming public.”\n📌 Reason: You may need public access in some scenarios such as downloading files or Lambda integrations (you can later restrict access using IAM policies).\nStep 4: Bucket Versioning (optional)\nSelect Disable if you don’t need file version tracking.\nSelect Enable if you want to be able to restore previous versions of files.\nStep 5: Tags (optional)\nYou may add tags such as:\nProject: S3EventWorkshop\nOwner: your-name\nNot required, but helpful for cost tracking and report filtering.\nStep 6: Encryption\nChoose one of the following:\nDisable (if you\u0026rsquo;re only testing), or S3-managed keys (SSE-S3) for automatic encryption of all uploaded files. Step 7: Advanced Settings\nNo changes needed if this bucket is only for event processing purposes. Keep default settings.\nStep 8: Click “Create bucket”\nReview all settings.\nScroll to the bottom → click Create bucket.\n"
+},
+{
+	"uri": "//localhost:1313/1-introduce/",
+	"title": "Introduction",
+	"tags": [],
+	"description": "",
+	"content": "Introduction\nIn modern systems, event-driven data processing is a common method for building flexible, cost-effective, and scalable pipelines. This workshop guides you through building a complex event processing system triggered by Amazon S3, orchestrated by AWS Step Functions, and powered by AWS Lambda.\nYou will learn how to integrate various AWS services into a fully automated, serverless workflow that includes error control, retries, and full process tracking.\nObjectives\nBy the end of this workshop, you will be able to:\nSet up triggers from Amazon S3 to initiate processing workflows upon file uploads. Build a chain of Lambda functions to handle data processing. Design workflows in AWS Step Functions with sequential, parallel, conditional, and error-handling states. Apply error-handling techniques including Retry, Catch, and Dead Letter Queues (DLQ). Monitor the entire system using CloudWatch Logs and Metrics. Hands-on Activities\nCreate an S3 bucket and configure event triggers on file upload. Write Lambda functions to process files (e.g., analyze metadata, send SNS messages). Create a Step Function to orchestrate multiple Lambda functions into a single workflow. Configure retry logic, handle exceptions, and send errors to SNS/SQS. Test and monitor via CloudWatch, verifying results through logs and Step Function state tracking. Expected Outcomes\nComplete an automated event-processing system triggered by S3 uploads. Understand how event-driven architecture works within the AWS environment. Gain practical experience with serverless patterns and real-world error management techniques. Apply your knowledge to real scenarios like log processing, image resizing, or input data analysis. "
+},
+{
+	"uri": "//localhost:1313/2-prerequiste/",
+	"title": "Architecture Overview",
+	"tags": [],
+	"description": "",
+	"content": "\rAn AWS account with permissions for S3, Lambda, Step Functions, and IAM is required. Basic understanding of AWS Lambda and Amazon S3 is expected. You should know how to create IAM roles, policies, and use the AWS Console or AWS CLI.\nThe advanced event processing system is designed based on an event-driven architecture, using serverless components for high scalability and cost optimization.\nStep-by-step Event Flow: Upload file to S3: A user or external system uploads a file (e.g., image, CSV, JSON, log, etc.) to an S3 bucket. S3 triggers an event: Amazon S3 emits an s3:ObjectCreated:* event and sends file metadata to either an SNS topic or directly to a Lambda function. Initial Lambda (preprocessing):\noThis Lambda function processes metadata, validates format, filters out invalid files, and extracts basic information.\nIf valid → proceed with processing. If invalid → log the error and terminate. Step Function orchestration:\nAWS Step Functions coordinate the entire workflow\nMonitoring with CloudWatch:\nEach Lambda function logs to CloudWatch Logs.\nStep Functions can be monitored through execution status and state transitions.\nResult Notification:\nFinal results, whether successful or failed, are sent to users via SNS, email, or logged for review.\n"
+},
+{
+	"uri": "//localhost:1313/3-accessibilitytoinstances/3.2-iam-role/",
+	"title": "Create IAM Role for Lambda",
+	"tags": [],
+	"description": "",
+	"content": "Step 1: Open the IAM Role creation page\nGo to IAM \u0026gt; Roles.\nClick the \u0026ldquo;Create role\u0026rdquo; button (top right corner).\nStep 2: Choose Trusted Entity (Lambda service)\nIn the Trusted entity type, select \u0026ldquo;AWS service\u0026rdquo;\nIn the Use case section, select \u0026ldquo;Lambda\u0026rdquo;\nClick Next\nStep 3: Attach permission policies\nSearch for and select the following 3 policies:\nPolicy name | Purpose:\nAmazonS3ReadOnlyAccess: Allows Lambda to read objects from S3\nCloudWatchLogsFullAccess: Allows Lambda to write logs to CloudWatch\nAWSStepFunctionsFullAccess: Allows Lambda to call Step Functions, and vice versa\nClick Next\nStep 4: Set name and description\nRole name: LambdaEventProcessingRole\nDescription (optional): Role for Lambda functions to access S3, Step Functions and CloudWatch\nClick Create role\nStep 5: Verify created Role\nIn the list of IAM Roles, find LambdaEventProcessingRole\nClick the role name to open details\nConfirm the following:\nTrusted entity: lambda.amazonaws.com Policies attached: Should include all 3 selected above ✅ Result\nYou have successfully created the IAM Role named LambdaEventProcessingRole for the Lambda functions used in the event processing workflow. This role will be assigned to functions such as:\ns3PreprocessFunction\nprocessFileFunction\nstoreResultFunction\n"
+},
+{
+	"uri": "//localhost:1313/4-step-function-workflow/4.2-createworkflow/",
+	"title": "Create Step Functions Workflow",
+	"tags": [],
+	"description": "",
+	"content": " Access Step Functions Go to the AWS Step Functions Console\nClick \u0026ldquo;Create state machine\u0026rdquo;\nEnter the name FileProcessingWorkflow\nChoose \u0026ldquo;Author with code snippets\u0026rdquo;\nPaste the following JSON configuration in the Definition tab:\n{\r\u0026#34;StartAt\u0026#34;: \u0026#34;Process File\u0026#34;,\r\u0026#34;States\u0026#34;: {\r\u0026#34;Process File\u0026#34;: {\r\u0026#34;Type\u0026#34;: \u0026#34;Task\u0026#34;,\r\u0026#34;Resource\u0026#34;: \u0026#34;arn:aws:lambda:ap-southeast-1:\u0026lt;account-id\u0026gt;:function:processFileFunction\u0026#34;,\r\u0026#34;Next\u0026#34;: \u0026#34;Store Result\u0026#34;,\r\u0026#34;Retry\u0026#34;: [\r{\r\u0026#34;ErrorEquals\u0026#34;: [\u0026#34;States.ALL\u0026#34;],\r\u0026#34;IntervalSeconds\u0026#34;: 2,\r\u0026#34;MaxAttempts\u0026#34;: 2\r}\r],\r\u0026#34;Catch\u0026#34;: [\r{\r\u0026#34;ErrorEquals\u0026#34;: [\u0026#34;States.ALL\u0026#34;],\r\u0026#34;Next\u0026#34;: \u0026#34;Fail Handler\u0026#34;\r}\r]\r},\r\u0026#34;Store Result\u0026#34;: {\r\u0026#34;Type\u0026#34;: \u0026#34;Task\u0026#34;,\r\u0026#34;Resource\u0026#34;: \u0026#34;arn:aws:lambda:ap-southeast-1:\u0026lt;account-id\u0026gt;:function:storeResultFunction\u0026#34;,\r\u0026#34;End\u0026#34;: true\r},\r\u0026#34;Fail Handler\u0026#34;: {\r\u0026#34;Type\u0026#34;: \u0026#34;Fail\u0026#34;,\r\u0026#34;Error\u0026#34;: \u0026#34;WorkflowFailed\u0026#34;,\r\u0026#34;Cause\u0026#34;: \u0026#34;Lambda function failed\u0026#34;\r}\r}\r} 📌 Explanation:\nRetry: automatically retries the Lambda function if it fails\nCatch: if all retries fail, the execution is redirected to the Fail Handler\nCreate the Workflow Click \u0026ldquo;Next\u0026rdquo;\nReview the name, role, and permissions\nClick \u0026ldquo;Create state machine\u0026rdquo;\n"
+},
+{
+	"uri": "//localhost:1313/5--monitoringwithcloudwatch/5.2-create-alerts-with-cloudwatch-alarm/",
+	"title": "Creating Alerts with CloudWatch Alarm",
+	"tags": [],
+	"description": "",
+	"content": "Alert when Lambda fails multiple times Go to the CloudWatch Console\nIn the left menu, select Alarms → All alarms → Create alarm\nClick Select metric\nNavigate:\nBrowse → choose Lambda → By Function Name → select function processFileFunction Select the Errors metric → Select metric Set conditions:\nStatistic: Sum\nPeriod: 5 minutes\nThreshold type: Static\nDefine threshold: Greater than 1\nClick Next\nSet notification actions:\nNotification:\nChoose or create SNS Topic (if none, select “Create new topic”) - Enter the email address to receive alerts\r- After creation, **confirm the subscription email** sent by AWS\rName the alarm: LambdaErrorAlarm Click Create alarm Alert when Step Function fails Step 1: Access Step Functions Metrics\nIn AWS Console: open CloudWatch\nGo to Metrics → select Browse Choose service group States → then Execution Metrics Locate metric: ExecutionsFailed for the state machine FileProcessingWorkflow Step 2: Create Alarm\nTick the row ExecutionsFailed\nClick Create alarm (top-right)\nStep 3: Set condition\nMetric: ExecutionsFailed\nStatistic: Sum\nPeriod: 5 minutes\nCondition: Greater than 0\nThreshold type: Static\nStep 4: Assign Notification Action\nChoose In alarm\nSelect previously created SNS Topic to receive email\nIf none exists, click Create new topic, enter email, and confirm AWS subscription email\nStep 5: Name and create alarm\nAlarm name: StepFunctionFailureAlarm\nClick Next, then Create alarm\n✅ Result: After setup, the system will monitor and alert if the Step Function fails within a 5-minute interval.\n✅ Post-configuration result:\nCloudWatch logs all Lambda functions and Step Functions\nAlarms send emails if the system encounters errors\nEnables easier monitoring and quick response if the workflow breaks\n"
+},
+{
+	"uri": "//localhost:1313/3-accessibilitytoinstances/3.3-lambda-function/",
+	"title": "Create Lambda Function: Preprocessing",
+	"tags": [],
+	"description": "",
+	"content": "Step 1: Access the Lambda Console\nClick “Create function”\nConfigure the Lambda Function\nUnder Basic information:\nFunction name: s3PreprocessFunction\nRuntime: choose Python 3.12 (or Node.js 18.x if you prefer JavaScript)\nUnder Execution role, select: Use an existing role\nFrom the “Existing role” dropdown, choose: LambdaEventProcessingRole\nClick the Create function button\nStep 2: Write handler code\nAfter the function is created, you\u0026rsquo;ll be redirected to the Code tab.\nIn the Code source section, enter the following code:\nexport const handler = async (event) =\u0026gt; { console.log(\u0026#34;Received event:\u0026#34;, event); return { statusCode: 200, body: \u0026#39;Preprocessing complete\u0026#39; }; }; Click the Deploy button (top right of the code editor)\n📌 Once deployed, your Lambda is ready to process events from S3.\nStep 3: Test the Lambda function on AWS Console\nName the test event: \u0026ldquo;TestS3Preprocess\u0026rdquo; Paste the following sample event JSON: { \u0026#34;Records\u0026#34;: [ { \u0026#34;s3\u0026#34;: { \u0026#34;bucket\u0026#34;: { \u0026#34;name\u0026#34;: \u0026#34;event-driven-demo-bucket\u0026#34; }, \u0026#34;object\u0026#34;: { \u0026#34;key\u0026#34;: \u0026#34;example.csv\u0026#34; } } } ] } Click Save and then Test Step 4: Review the result\nIf the Lambda executes successfully, you will see:\n{ \u0026#34;statusCode\u0026#34;: 200, \u0026#34;body\u0026#34;: \u0026#34;Preprocessing complete\u0026#34; } And the logs below will print the event:\nSTART RequestId: ...\rReceived event: { ... }\rEND RequestId: ... ✅ Conclusion\nYou have successfully tested the Lambda function with a simulated event.\nIf you later integrate the trigger from S3, the real event will have a structure similar to the JSON sample provided above.\n"
+},
+{
+	"uri": "//localhost:1313/3-accessibilitytoinstances/",
+	"title": "Environment and Resource Preparation",
+	"tags": [],
+	"description": "",
+	"content": "In this section, we will set up the basic components required to begin the workshop, using only the AWS Management Console (no CLI or CDK).\nContents 3.1. Create an S3 Bucket\n3.2. Create an IAM Role for Lambda\n3.3. Create Preprocessing Lambda Function\n3.4. Set up Trigger from S3 to Lambda\n"
+},
+{
+	"uri": "//localhost:1313/5--monitoringwithcloudwatch/5.3.test/",
+	"title": "Test Alarm",
+	"tags": [],
+	"description": "",
+	"content": "Test 1: Triggering Alarm When Lambda Fails Multiple Times 🎯 Objective: Trigger the configured CloudWatch Alarm for processFileFunction (or the Lambda function you chose), by intentionally causing it to fail multiple times within 5 minutes. s\nStep 1: Modify Lambda to Force an Error\nGo to AWS Lambda Console\nOpen the Lambda function (processFileFunction)\nSelect the Code tab\nReplace code as follows (Node.js or Python) to always throw an error:\nFor Python:\ndef lambda_handler(event, context): raise Exception(\u0026#34;Forced test error\u0026#34;) Click Deploy to apply changes Step 2: Invoke Lambda Repeatedly to Generate Errors\nIn Lambda Console → go to the Test tab\nCreate a test event:\n{ \u0026#34;test\u0026#34;: true } Click Test 3–5 times within 1–2 minutes 📌 Goal: Multiple failed invocations → total Errors \u0026gt; 1 in 5 minutes\nStep 3: Monitor the Alarm\nGo to CloudWatch → Alarms Check if the LambdaErrorAlarm transitions from OK to ALARM (may take a few minutes)\nCheck your email for alert if linked with SNS Topic\nTest 2: Triggering Alarm When Step Function Fails Step 1: Access Step Functions Console\nOpen FileProcessingWorkflow\nClick “Start execution”\nEnter the following input (depending on your code, but use one that causes Lambda to fail):\n{ \u0026#34;simulateError\u0026#34;: true } If your Lambda does not process input, just make the Lambda step throw an exception by default.\nRun the workflow → it should fail\nCheck the Execution status: it should show Failed\nStep 2: After Execution Fails\nWait about 1–5 minutes\nCloudWatch will update the ExecutionsFailed metric\nStep 3: Check the Alarm\nGo back to CloudWatch → Alarms\nIf StepFunctionFailureAlarm moves from ❔ Insufficient data to 🔴 In alarm, your test is successful\nCheck your email (if you attached the SNS topic and confirmed the subscription): You will receive an alert about the Step Function failure\n"
+},
+{
+	"uri": "//localhost:1313/4-step-function-workflow/",
+	"title": "Create Step Function Workflow",
+	"tags": [],
+	"description": "",
+	"content": "In this section, you will build a workflow that orchestrates multiple processing steps using AWS Step Functions. Each step invokes a specific Lambda function, with built-in support for retry logic and error catching.\nContents: Create Additional Lambda Functions Create the Workflow using Step Functions "
+},
+{
+	"uri": "//localhost:1313/5--monitoringwithcloudwatch/",
+	"title": "Monitoring with CloudWatch",
+	"tags": [],
+	"description": "",
+	"content": "Monitoring and Logging with Amazon CloudWatch CloudWatch is the default monitoring service in AWS, helping you track logs, statuses, and performance of Lambda functions as well as Step Functions. In this section, we will configure CloudWatch Logs and set up alarms in case the workflow fails.\nContents: Check logs from Lambda and Step Functions Create alerts with CloudWatch Alarm Test the alarms "
+},
+{
+	"uri": "//localhost:1313/3-accessibilitytoinstances/3.4-trigger/",
+	"title": "Set Up Trigger from S3 to Lambda",
+	"tags": [],
+	"description": "",
+	"content": "Step 1:\nLocate and click the name of the bucket you created (e.g., event-driven-demo-bucket)\nCreate a folder named uploads and upload a .jpg file Open the event configuration section\nIn the bucket interface → go to the Properties tab\nScroll down to the Event notifications section\nClick “Create event notification”\nConfigure the event trigger\nEnter a name, e.g., TriggerLambdaOnUpload Check: ✅ All object create events (or just PUT if you only want to trigger on upload) Prefix and suffix (optional):\nPrefix (optional): e.g., uploads/ to monitor a specific folder\nSuffix (optional): .csv to process only CSV files\n(In this example we use a suffix filter)\nDestination:\nSelect: Lambda function\nFunction name: s3PreprocessFunction (you can select it from the dropdown)\nSave configuration: Click Save changes\n✅ Result\nEvery time you upload a file to the bucket, the s3PreprocessFunction Lambda will automatically be triggered.\nYou can view logs in CloudWatch Logs after each upload.\n🎯 Verification\nTry uploading a .txt or .csv file to the bucket via the AWS Console\nOpen AWS CloudWatch Logs → find log group /aws/lambda/s3PreprocessFunction\nLook for the latest log entry → you should see output similar to this:\n"
+},
+{
+	"uri": "//localhost:1313/6-cleanup/",
+	"title": "Clean Up Resources",
+	"tags": [],
+	"description": "",
+	"content": " Delete the Step Function State Machine Go to the Step Functions Console\nSelect FileProcessingWorkflow\nClick Actions → Delete state machine\nConfirm deletion\nDelete Lambda Functions Open the Lambda Console\nDelete the following functions one by one:\ns3PreprocessFunction\nprocessFileFunction\nstoreResultFunction\nDelete the S3 bucket Select the bucket event-driven-demo-bucket\nEmpty the bucket\nDelete the S3 bucket\nDelete the IAM Role (if no longer needed) "
+},
+{
+	"uri": "//localhost:1313/categories/",
+	"title": "Categories",
+	"tags": [],
+	"description": "",
+	"content": ""
+},
+{
+	"uri": "//localhost:1313/tags/",
+	"title": "Tags",
+	"tags": [],
+	"description": "",
+	"content": ""
+}]

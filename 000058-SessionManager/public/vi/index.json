@@ -1,0 +1,127 @@
+[
+{
+	"uri": "//localhost:1313/vi/1-introduce/",
+	"title": "Giới thiệu",
+	"tags": [],
+	"description": "",
+	"content": "Giới thiệu\nTrong các hệ thống hiện đại, việc xử lý dữ liệu theo hướng sự kiện là phương pháp phổ biến để xây dựng các pipeline linh hoạt, tiết kiệm chi phí và dễ mở rộng. Workshop này hướng dẫn bạn cách xây dựng một hệ thống xử lý sự kiện phức tạp bắt nguồn từ Amazon S3, điều phối bởi AWS Step Functions và xử lý bởi AWS Lambda.\nBạn sẽ học cách tích hợp nhiều dịch vụ AWS để tạo thành một quy trình xử lý tự động hóa không máy chủ (serverless), có khả năng kiểm soát lỗi, retry và theo dõi trạng thái của toàn bộ luồng công việc.\nMục tiêu\nSau khi hoàn thành workshop, bạn sẽ có thể:\nThiết lập trigger từ Amazon S3 để khởi tạo quy trình xử lý khi có file được upload. Xây dựng chuỗi Lambda functions để xử lý dữ liệu. Thiết kế workflow với AWS Step Functions: tuần tự, song song, điều kiện và xử lý lỗi. Áp dụng các kỹ thuật xử lý lỗi: Retry, Catch, Dead Letter Queue. Giám sát toàn bộ hệ thống với CloudWatch Logs và Metrics. Nội dung thực hành\nTạo S3 bucket và cấu hình sự kiện khi upload file. Viết Lambda function để xử lý tệp (ví dụ: phân tích metadata, gửi SNS). Tạo Step Function để điều phối nhiều Lambda thành một workflow. Cấu hình retry logic, xử lý ngoại lệ và gửi lỗi sang SNS/SQS. Kiểm tra, giám sát bằng CloudWatch và xác thực kết quả qua log và trạng thái Step Function. Kết quả đạt được\nHoàn thành một hệ thống xử lý sự kiện tự động từ đầu vào S3. Hiểu cách hoạt động của kiến trúc event-driven trong môi trường AWS. Làm quen với mô hình serverless và các kỹ thuật quản lý lỗi thực tế. Ứng dụng được kiến thức vào các bài toán thực tế như: xử lý log, resize ảnh, phân tích dữ liệu đầu vào "
+},
+{
+	"uri": "//localhost:1313/vi/5--monitoringwithcloudwatch/5.1-check-logs-from-lambda-and-step-functions/",
+	"title": "Kiểm tra log từ Lambda và Step Functions",
+	"tags": [],
+	"description": "",
+	"content": "Logs của Lambda Function Truy cập CloudWatch Console\nChọn Logs → Log groups\nTìm theo tên hàm: /aws/lambda/s3PreprocessFunction, processFileFunction, storeResultFunction\nChọn group → click log stream để xem chi tiết từng lần invoke Logs của Step Function Truy cập lại Step Functions Console\nChọn state machine FileProcessingWorkflow\nNhấn vào execution bất kỳ → tab Execution events sẽ hiển thị chi tiết:\nInput/Output từng bước\nTrạng thái succeed/fail: Error message nếu có lỗi "
+},
+{
+	"uri": "//localhost:1313/vi/3-accessibilitytoinstances/3.1-s3/",
+	"title": "Tạo S3 Bucket",
+	"tags": [],
+	"description": "",
+	"content": "Bước 1: Truy cập giao diện tạo bucket\nĐảm bảo bạn đang đăng nhập bằng tài khoản AWS và ở vùng Asia Pacific (Singapore) - ap-southeast-1 Bước 2: Nhập thông tin Bucket\nBucket name (tên duy nhất toàn cục):\nVí dụ: event-driven-demo-bucket-2025\nGợi ý: dùng tên ngắn gọn, không chứa khoảng trắng hoặc ký tự đặc biệt\n🌍 AWS Region:\nMặc định là Asia Pacific (Singapore) ap-southeast-1 — giữ nguyên nếu bạn dùng cùng vùng cho Lambda, Step Functions\nBước 3: Thiết lập Public Access\nTrong mục Block Public Access settings for this bucket: ✅ Bỏ tick ở dòng: Block all public access\nAWS sẽ hiện cảnh báo → bạn tick vào ô xác nhận “I acknowledge…” 📌 Lý do: Bạn cần bật quyền truy cập trong một số tình huống như tải tệp hoặc tích hợp Lambda (có thể giới hạn bằng IAM policy sau này)\nBước 4: Bucket Versioning (tuỳ chọn)\nNếu không cần theo dõi lịch sử phiên bản file, chọn Disable\nNếu bạn muốn bật tính năng khôi phục file cũ, chọn Enable\nBước 5: Tags (tuỳ chọn)\nCó thể thêm tags như:\nProject: S3EventWorkshop\nOwner: your-name\nKhông bắt buộc, nhưng giúp quản lý chi phí \u0026amp; lọc báo cáo tốt hơn.\nBước 6: Encryption\nBạn có thể chọn:\nDisable (nếu chỉ test)\nHoặc S3-managed keys (SSE-S3) nếu muốn mã hóa mặc định cho mọi tệp\nBước 7: Advanced Settings\nKhông cần thay đổi nếu bạn chỉ sử dụng cho mục đích xử lý sự kiện. Để mặc định. Bước 8: Nhấn “Create bucket”\nXem lại toàn bộ thiết lập\nCuối trang → nhấn Create bucket\n"
+},
+{
+	"uri": "//localhost:1313/vi/4-step-function-workflow/4.1-create-lambda-functions/",
+	"title": "Tạo thêm Lambda Functions (Xử lý chính và lưu kết quả)",
+	"tags": [],
+	"description": "",
+	"content": "Tạo Lambda xử lý nội dung (processFileFunction) Truy cập Lambda Console\nNhấn Create function\nĐiền thông tin:\nFunction name: processFileFunction\nRuntime: Python 3.12\nExecution role: Use existing role → chọn LambdaEventProcessingRole\nNhấn Create function Trong mục Code, dán:\ndef lambda_handler(event, context): print(\u0026#34;Processing file content...\u0026#34;) return { \u0026#34;status\u0026#34;: \u0026#34;processed\u0026#34;, \u0026#34;filename\u0026#34;: event.get(\u0026#34;filename\u0026#34;, \u0026#34;unknown\u0026#34;) } Nhấn Deploy Tạo Lambda lưu kết quả (storeResultFunction) Tiếp tục tạo function mới:\nFunction name: storeResultFunction\nRuntime: Python 3.12\nExecution role: LambdaEventProcessingRole\nCode mẫu:\ndef lambda_handler(event, context): print(\u0026#34;Storing result...\u0026#34;) print(\u0026#34;Input from previous step:\u0026#34;, event) return { \u0026#34;status\u0026#34;: \u0026#34;stored\u0026#34;, \u0026#34;original\u0026#34;: event } Nhấn Deploy "
+},
+{
+	"uri": "//localhost:1313/vi/5--monitoringwithcloudwatch/5.2-create-alerts-with-cloudwatch-alarm/",
+	"title": "Tạo cảnh báo với CloudWatch Alarm",
+	"tags": [],
+	"description": "",
+	"content": "Cảnh báo khi Lambda lỗi nhiều lần Vào lại CloudWatch Console\nTrong menu trái, chọn Alarms → All alarms → Create alarm\nBấm Select metric\nĐiều hướng:\nBrowse → chọn Lambda\n→ By Function Name\n→ chọn function processFileFunction\nChọn metric Errors → Select metric Thiết lập điều kiện:\nStatistic: Sum\nPeriod: 5 minutes\nThreshold type: Static\nDefine threshold: Greater than 1 Nhấn Next\nThiết lập hành động:\nNotification:\nChọn hoặc tạo SNS Topic (nếu chưa có, chọn “Create new topic”)\nNhập email nhận cảnh báo\nSau khi tạo, nhớ xác nhận email gửi từ AWS\nĐặt tên alarm: LambdaErrorAlarm Nhấn Create alarm Cảnh báo khi Step Function thất bại Bước 1: Truy cập Metrics của Step Functions Vào AWS Console: CloudWatch\nVào Metrics → chọn Browse Chọn nhóm dịch vụ States → tiếp tục chọn Execution Metrics Tìm đến metric: ExecutionsFailed của state machine FileProcessingWorkflow Bước 2: Tạo Alarm Tick vào dòng ExecutionsFailed\nNhấn nút Create alarm (góc phải trên)\nBước 3: Cấu hình điều kiện cảnh báo Metric: ExecutionsFailed\nStatistic: Sum\nPeriod: 5 minutes\nCondition: Greater than 0\nThreshold type: Static\nBước 4: Gán hành động cảnh báo Chọn In alarm\nChọn SNS Topic đã tạo trước đó để nhận email\nNếu chưa có, nhấn Create new topic, nhập email và xác nhận email từ AWS\nBước 5: Đặt tên và tạo alarm Alarm name: StepFunctionFailureAlarm\nNhấn Next, rồi Create alarm\n✅ Kết quả: Sau khi tạo xong, hệ thống sẽ theo dõi và gửi cảnh báo nếu Step Function thất bại trong khoảng thời gian 5 phút.\n✅ Kết quả sau khi cấu hình CloudWatch ghi log cho tất cả các hàm Lambda và Step Function\nCảnh báo sẽ gửi email nếu hệ thống bị lỗi\nGiúp bạn dễ dàng giám sát, nhanh chóng phản ứng nếu workflow hỏng\n"
+},
+{
+	"uri": "//localhost:1313/vi/3-accessibilitytoinstances/3.2-iam-role/",
+	"title": "Tạo IAM Role cho Lambda",
+	"tags": [],
+	"description": "",
+	"content": "Bước 1: Mở trang tạo Role\nVào IAM Roles\nNhấn nút “Create role” (góc phải trên)\nBước 2: Chọn Trusted Entity (Lambda service)\nỞ mục Trusted entity type, chọn \u0026ldquo;AWS service\u0026rdquo; Trong phần “Use case”, chọn \u0026ldquo;Lambda\u0026rdquo;\nNhấn Next\nBước 3: Gán quyền (Attach policies)\nTìm và tick chọn 3 policies sau: Policy name\tMục đích:\nAmazonS3ReadOnlyAccess: Cho phép Lambda đọc object từ S3\nCloudWatchLogsFullAccess: Ghi log vào CloudWatch\nAWSStepFunctionsFullAccess: Cho phép Lambda gọi Step Functions hoặc Step Functions invoke Lambda\nNhấn Next\nBước 4 Gán tên và mô tả\nRole name: LambdaEventProcessingRole\nDescription (tuỳ chọn): Role for Lambda functions to access S3, Step Functions and CloudWatch\nNhấn Create role\nBước 5: Kiểm tra Role đã tạo\nTrong danh sách IAM Roles, tìm LambdaEventProcessingRole\nClick vào tên role để mở chi tiết\nXác nhận:\nTrusted entity: lambda.amazonaws.com\nPolicies attached: gồm đủ 3 quyền đã chọn\n✅ Kết quả\nBạn đã tạo xong IAM Role tên LambdaEventProcessingRole cho các Lambda functions dùng trong workflow xử lý sự kiện. Role này sẽ được gán cho các hàm như:\ns3PreprocessFunction\nprocessFileFunction\nstoreResultFunction\n"
+},
+{
+	"uri": "//localhost:1313/vi/4-step-function-workflow/4.2-createworkflow/",
+	"title": "Tạo Step Functions Workflow",
+	"tags": [],
+	"description": "",
+	"content": " Truy cập Step Functions Truy cập giao diện Step Functions Console\nNhấn Create state machine\nNhập tên FileProcessingWorkflow\nChọn Author with code snippets\nNhập cấu hình JSON Workflow:\nỞ tab Definition, dán đoạn mã sau (nhớ sửa id của bạn): {\r\u0026#34;StartAt\u0026#34;: \u0026#34;Process File\u0026#34;,\r\u0026#34;States\u0026#34;: {\r\u0026#34;Process File\u0026#34;: {\r\u0026#34;Type\u0026#34;: \u0026#34;Task\u0026#34;,\r\u0026#34;Resource\u0026#34;: \u0026#34;arn:aws:lambda:ap-southeast-1:\u0026lt;account-id\u0026gt;:function:processFileFunction\u0026#34;,\r\u0026#34;Next\u0026#34;: \u0026#34;Store Result\u0026#34;,\r\u0026#34;Retry\u0026#34;: [\r{\r\u0026#34;ErrorEquals\u0026#34;: [\u0026#34;States.ALL\u0026#34;],\r\u0026#34;IntervalSeconds\u0026#34;: 2,\r\u0026#34;MaxAttempts\u0026#34;: 2\r}\r],\r\u0026#34;Catch\u0026#34;: [\r{\r\u0026#34;ErrorEquals\u0026#34;: [\u0026#34;States.ALL\u0026#34;],\r\u0026#34;Next\u0026#34;: \u0026#34;Fail Handler\u0026#34;\r}\r]\r},\r\u0026#34;Store Result\u0026#34;: {\r\u0026#34;Type\u0026#34;: \u0026#34;Task\u0026#34;,\r\u0026#34;Resource\u0026#34;: \u0026#34;arn:aws:lambda:ap-southeast-1:\u0026lt;account-id\u0026gt;:function:storeResultFunction\u0026#34;,\r\u0026#34;End\u0026#34;: true\r},\r\u0026#34;Fail Handler\u0026#34;: {\r\u0026#34;Type\u0026#34;: \u0026#34;Fail\u0026#34;,\r\u0026#34;Error\u0026#34;: \u0026#34;WorkflowFailed\u0026#34;,\r\u0026#34;Cause\u0026#34;: \u0026#34;Lambda function failed\u0026#34;\r}\r}\r} 📌 Giải thích:\nRetry: tự động chạy lại nếu Lambda lỗi\nCatch: chuyển hướng đến bước Fail Handler nếu tất cả retry thất bại\nTạo workflow Nhấn Next\nKiểm tra lại tên, role, quyền\nNhấn Create state machine\n"
+},
+{
+	"uri": "//localhost:1313/vi/2-prerequiste/",
+	"title": "Tổng quan kiến trúc",
+	"tags": [],
+	"description": "",
+	"content": "\rTài khoản AWS có quyền sử dụng S3, Lambda, Step Functions, IAM. Hiểu cơ bản về AWS Lambda và Amazon S3. Biết cách tạo role, policy và dùng AWS Console hoặc AWS CLI.\nHệ thống xử lý sự kiện nâng cao được thiết kế theo kiến trúc event-driven, sử dụng các thành phần không máy chủ (serverless) giúp mở rộng linh hoạt và tối ưu chi phí.\nLuồng xử lý sự kiện từng bước: Upload file vào S3: Người dùng hoặc hệ thống khác tải tệp (ảnh, CSV, JSON, log,\u0026hellip;) vào một S3 bucket. S3 phát sinh sự kiện: S3 kích hoạt sự kiện s3:ObjectCreated:* và gửi thông tin file qua SNS hoặc trực tiếp đến Lambda. Lambda đầu tiên (preprocessing): Xử lý metadata, kiểm tra định dạng, lọc file lỗi, trích xuất thông tin cơ bản.\nNếu hợp lệ → tiếp tục xử lý.\nNếu không hợp lệ → ghi log lỗi và dừng.\nStep Function orchestration: Step Functions điều phối toàn bộ quy trình CloudWatch giám sát: Từng Lambda sẽ ghi log vào CloudWatch Logs.\nStep Functions có thể được theo dõi theo execution status.\nThông báo kết quả: Kết quả thành công hoặc lỗi sẽ được gửi đến người dùng qua SNS, Email, hoặc lưu log. "
+},
+{
+	"uri": "//localhost:1313/vi/3-accessibilitytoinstances/3.3-lambda-function/",
+	"title": "Tạo Lambda Function: Tiền xử lý",
+	"tags": [],
+	"description": "",
+	"content": "Bước 1: Truy cập Lambda Console\nNhấn “Create function”\nCấu hình Lambda Function\nTại mục Basic information:\nFunction name: s3PreprocessFunction\nRuntime: chọn Python 3.12 (hoặc Node.js 18.x nếu bạn muốn dùng JavaScript)\nTại mục Execution role chọn: Use an existing role\nỞ dropdown “Existing role” chọn: LambdaEventProcessingRole\nNhấn nút Create function\nBước 2: Viết mã xử lý\nSau khi function được tạo, bạn sẽ được đưa đến trang Code của hàm.\nTrong phần Code source, nhập đoạn mã sau:\nexport const handler = async (event) =\u0026gt; {\rconsole.log(\u0026#34;Received event:\u0026#34;, event);\rreturn {\rstatusCode: 200,\rbody: \u0026#39;Preprocessing complete\u0026#39;\r};\r}; Nhấn nút Deploy (góc trên bên phải vùng code) 📌 Sau khi Deploy, Lambda đã sẵn sàng xử lý sự kiện từ S3.\nBước 3: test Lambda function trên AWS Console\nĐặt tên test event: \u0026ldquo;TestS3Preprocess\u0026rdquo; Nhập nội dung sự kiện JSON { \u0026#34;Records\u0026#34;: [ { \u0026#34;s3\u0026#34;: { \u0026#34;bucket\u0026#34;: { \u0026#34;name\u0026#34;: \u0026#34;event-driven-demo-bucket\u0026#34; }, \u0026#34;object\u0026#34;: { \u0026#34;key\u0026#34;: \u0026#34;example.csv\u0026#34; } } } ] } Nhấn nút Save và sau đó Test Bước 4: Xem kết quả\nNếu Lambda chạy thành công, bạn sẽ thấy: { \u0026#34;statusCode\u0026#34;: 200, \u0026#34;body\u0026#34;: \u0026#34;Preprocessing complete\u0026#34; } Và log ở bên dưới sẽ in ra sự kiện bạn vừa gửi: START RequestId: ...\rReceived event: { ... }\rEND RequestId: ... ✅ Kết luận\nBạn đã test xong Lambda function với sự kiện giả lập. Nếu bạn tích hợp trigger từ S3 sau này, sự kiện thật sẽ có cấu trúc giống mẫu JSON mình cung cấp ở trên.\n"
+},
+{
+	"uri": "//localhost:1313/vi/5--monitoringwithcloudwatch/5.3.test/",
+	"title": "Test cảnh báo",
+	"tags": [],
+	"description": "",
+	"content": "Test 1: Kích hoạt cảnh báo khi Lambda lỗi nhiều lần 🎯 Mục tiêu: Kích hoạt CloudWatch Alarm đã cấu hình cho processFileFunction (hoặc Lambda nào bạn đã chọn), bằng cách cố tình làm Lambda thất bại nhiều lần trong 5 phút.\nBước 1: Sửa Lambda để gây lỗi cố tình Vào AWS Lambda Console\nMở hàm Lambda (processFileFunction)\nChọn tab Code\nThay code như sau (Node.js hoặc Python) để luôn lỗi:\nVới Python:\ndef lambda_handler(event, context):\rraise Exception(\u0026#34;Forced test error\u0026#34;) Nhấn Deploy để áp dụng thay đổi Bước 2: Gọi Lambda liên tục để tạo lỗi Tại Lambda Console → chọn tab Test\nTạo event test mẫu:\n{\r\u0026#34;test\u0026#34;: true\r} Nhấn Test từ 3–5 lần liên tục trong vòng 1–2 phút 📌 Mục tiêu: Có nhiều lần gọi thất bại → tổng số Errors \u0026gt; 1 trong 5 phút\nBước 3: Theo dõi cảnh báo\nVào CloudWatch → Alarms Xem alarm LambdaErrorAlarm có chuyển từ trạng thái OK → ALARM không (mất vài phút)\nKiểm tra email nhận cảnh báo nếu gắn SNS Topic\nTest 2: Kích hoạt cảnh báo khi Step Function thất bại Bước 1: Vào Step Functions Console\nMở FileProcessingWorkflow.\nNhấn “Start execution”\nNhập Input như sau (tuỳ bạn code thế nào, nhưng hãy dùng input khiến Lambda gọi lỗi):\n{\r\u0026#34;simulateError\u0026#34;: true\r} Hoặc nếu bạn không xử lý input: chỉ cần để Lambda trong step raise Exception(\u0026hellip;) mặc định là đủ.\nChạy workflow → để nó lỗi\nKiểm tra Execution status: phải là Failed\nBước 2: Sau khi chạy lỗi:\nChờ khoảng 1–5 phút\nCloudWatch sẽ cập nhật metric ExecutionsFailed \u0026gt;\nBước 3: Kiểm tra lại alarm:\nVào lại CloudWatch → Alarms\nNếu thấy StepFunctionFailureAlarm chuyển từ ❔ Insufficient data sang 🔴 In alarm là bạn test thành công\nKiểm tra email (nếu bạn đã gắn SNS topic vào alarm đó và xác nhận email): Bạn sẽ nhận được cảnh báo lỗi Step Function.\nKiểm tra email (nếu bạn đã gắn SNS topic vào alarm đó và xác nhận email): "
+},
+{
+	"uri": "//localhost:1313/vi/3-accessibilitytoinstances/",
+	"title": "Chuẩn bị môi trường và tài nguyên",
+	"tags": [],
+	"description": "",
+	"content": "Trong phần này, chúng ta sẽ thiết lập các thành phần cơ bản cần thiết để bắt đầu workshop, sử dụng AWS Management Console hoàn toàn (không dùng CLI/CDK).\nNội dung 3.1. Tạo S3 bucket 3.2. Tạo IAM Role cho Lambda 3.4. Tạo Lambda Function: Tiền xử lý 3.5. Thiết lập Trigger từ S3 đến Lambda\n"
+},
+{
+	"uri": "//localhost:1313/vi/4-step-function-workflow/",
+	"title": "Tạo Step Function Workflow",
+	"tags": [],
+	"description": "",
+	"content": "Trong phần này, bạn sẽ xây dựng một workflow điều phối nhiều bước xử lý bằng AWS Step Functions. Mỗi bước gọi một Lambda function cụ thể, kèm theo khả năng retry và bắt lỗi (error catching).\nNội dung: Tạo thêm Lambda Functions Tạo Workflow bằng Step Functions "
+},
+{
+	"uri": "//localhost:1313/vi/5--monitoringwithcloudwatch/",
+	"title": "Giám sát với CloudWatch",
+	"tags": [],
+	"description": "",
+	"content": "Giám sát và Logging với Amazon CloudWatch CloudWatch là công cụ giám sát mặc định trong AWS, giúp bạn theo dõi log, trạng thái, và hiệu suất của các Lambda function cũng như Step Functions. Trong phần này, chúng ta sẽ cấu hình CloudWatch Logs và thiết lập cảnh báo nếu workflow thất bại.\nNội dung: Kiểm tra log từ Lambda và Step Functions Tạo cảnh báo với CloudWatch Alarm Test cảnh báo "
+},
+{
+	"uri": "//localhost:1313/vi/3-accessibilitytoinstances/3.4-trigger/",
+	"title": "Thiết lập Trigger từ S3 đến Lambda",
+	"tags": [],
+	"description": "",
+	"content": "Bước 1:\nTìm và nhấn vào tên bucket bạn đã tạo (ví dụ: event-driven-demo-bucket)\nTạo folder uploads và up load 1 file .jpg Mở phần cấu hình sự kiện\nTrong giao diện bucket → chọn tab Properties\nCuộn xuống phần Event notifications\nNhấn nút “Create event notification”\nCấu hình event trigger\nNhập tên tùy ý, ví dụ: TriggerLambdaOnUpload Tick vào: ✅ All object create events (hoặc chỉ PUT nếu bạn chỉ muốn khi upload file) Prefix và suffix (tùy chọn):\nPrefix (tùy chọn): Ví dụ uploads/ nếu bạn chỉ muốn theo dõi thư mục cụ thể\nSuffix (tùy chọn): .csv nếu bạn chỉ muốn xử lý file CSV\n(Ở ví dụ này ta dùng Suffix)\nDestination:\nChọn: Lambda function\nTên hàm: s3PreprocessFunction (nó sẽ hiện dropdown để bạn chọn)\nLưu cấu hình: Nhấn nút Save changes\n✅ Kết quả\nMỗi khi bạn upload một file vào bucket, Lambda s3PreprocessFunction sẽ tự động được kích hoạt.\nBạn có thể vào CloudWatch Logs để xem log ghi lại từ Lambda sau mỗi lần upload.\n🎯 Kiểm tra lại\nThử upload một file .txt hoặc .csv vào bucket qua giao diện\nMở AWS CloudWatch Logs → tìm log group /aws/lambda/s3PreprocessFunction\nTìm log group tên: /aws/lambda/s3PreprocessFunction\nXem dòng log mới nhất → bạn sẽ thấy output như sau:\n"
+},
+{
+	"uri": "//localhost:1313/vi/6-cleanup/",
+	"title": "Dọn dẹp tài nguyên",
+	"tags": [],
+	"description": "",
+	"content": " Xóa Step Function State Machine Truy cập Step Functions Console\nChọn FileProcessingWorkflow\nNhấn Actions → Delete state machine\nXác nhận xóa\nXóa các Lambda Functions Vào Lambda Console\nXóa lần lượt các function:\ns3PreprocessFunction\nprocessFileFunction\nstoreResultFunction\nXóa bucket S3 Chọn bucket event-driven-demo-bucket\nEmpty bucket\nXóa bucket S3\nXóa IAM Role nếu không dùng cho mục đích khác "
+},
+{
+	"uri": "//localhost:1313/vi/",
+	"title": "Advanced S3 Event Processing with AWS Lambda and Step Functions",
+	"tags": [],
+	"description": "",
+	"content": "Xử lý sự kiện nâng cao từ S3 với Lambda và Step Functions Tổng quan Đề tài tập trung xây dựng một hệ thống xử lý sự kiện tự động từ Amazon S3 bằng cách sử dụng AWS Lambda và Step Functions. Hệ thống giúp xử lý tệp tin một cách linh hoạt, mở rộng, có khả năng kiểm soát lỗi và theo dõi hiệu quả. Giải pháp phù hợp với các bài toán xử lý dữ liệu lớn như file media, log hoặc tài liệu, đồng thời tối ưu hiệu suất và chi phí vận hành.\nNội dung Giới thiệu Tổng quan kiến trúc Chuẩn bị môi trường và tài nguyên Tạo Step Functions Workflow Giám sát với CloudWatch Dọn dẹp tài nguyên "
+},
+{
+	"uri": "//localhost:1313/vi/categories/",
+	"title": "Categories",
+	"tags": [],
+	"description": "",
+	"content": ""
+},
+{
+	"uri": "//localhost:1313/vi/tags/",
+	"title": "Tags",
+	"tags": [],
+	"description": "",
+	"content": ""
+}]
